@@ -22,7 +22,7 @@ A single-page dashboard portal for quick link access, built with React, TypeScri
 #### Option 1: Use the pre-built image from Docker Hub
 ```bash
 # Pull and run the latest image
-docker run --name warpdeck -p 8089:8089 -v $(pwd)/data:/app/server/data loganrickert/warpdeck:latest
+docker run -d --name warpdeck -p 8089:8089 -v $(pwd)/data:/app/server/data loganrickert/warpdeck:latest
 ```
 
 #### Option 2: Build from source
@@ -31,7 +31,7 @@ docker run --name warpdeck -p 8089:8089 -v $(pwd)/data:/app/server/data loganric
 docker build -t warpdeck:latest .
 
 # Run the container
-docker run --name warpdeck -p 8089:8089 -v $(pwd)/server/data:/app/server/data warpdeck:latest
+docker run -d --name warpdeck -p 8089:8089 -v $(pwd)/server/data:/app/server/data warpdeck:latest
 ```
 
 **Port Mapping**: `-p 8089:8089` maps container port 8089 to host port 8089  
