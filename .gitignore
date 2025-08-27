@@ -1,0 +1,24 @@
+# Ignore all .log files
+*.log
+
+# Ignore the 'target' directory and its contents
+target/
+
+# Ignore the 'node_modules' directory and its contents (common in JavaScript projects)
+node_modules/
+
+# Ignore specific files
+.env
+.DS_Store
+
+# Ignore all files with a .tmp extension
+*.tmp
+
+# Ignore temporary files created by certain IDEs
+.idea/
+.vscode/
+
+# Ignore build output directories
+build/
+dist/
+server/data

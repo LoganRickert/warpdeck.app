@@ -1,0 +1,16 @@
+{
+  "name": "warpdeck",
+  "version": "1.0.0",
+  "description": "A single-page dashboard portal for quick link access",
+  "scripts": {
+    "docker:build": "docker build -t warpdeck:latest .",
+    "docker:run": "docker run -p 8089:8089 warpdeck:latest",
+    "dev:server": "cd server && pnpm dev",
+    "dev:client": "cd client && pnpm dev",
+    "build": "cd server && pnpm build && cd ../client && pnpm build",
+    "start": "cd server && pnpm start"
+  },
+  "keywords": ["dashboard", "portal", "links", "react", "express"],
+  "author": "",
+  "license": "MIT"
+}
