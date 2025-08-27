@@ -19,13 +19,23 @@ A single-page dashboard portal for quick link access, built with React, TypeScri
 
 ### Using Docker (Recommended)
 
+#### Option 1: Use the pre-built image from Docker Hub
+```bash
+# Pull and run the latest image
+docker run --name warpdeck -p 8089:8089 -v $(pwd)/data:/app/server/data loganrickert/warpdeck:latest
+```
+
+#### Option 2: Build from source
 ```bash
 # Build the Docker image
 docker build -t warpdeck:latest .
 
 # Run the container
-docker run -p 8089:8089 -v $(pwd)/server/data:/app/server/data warpdeck:latest
+docker run --name warpdeck -p 8089:8089 -v $(pwd)/server/data:/app/server/data warpdeck:latest
 ```
+
+**Port Mapping**: `-p 8089:8089` maps container port 8089 to host port 8089  
+**Volume Mounting**: `-v $(pwd)/data:/app/server/data` persists your dashboards and settings
 
 The application will be available at `http://localhost:8089`
 
