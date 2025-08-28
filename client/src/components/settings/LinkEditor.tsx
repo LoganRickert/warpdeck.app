@@ -30,7 +30,6 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
   const [editedLink, setEditedLink] = useState<Partial<Link>>({
     label: link.label || '',
     url: link.url || '',
-    icon: link.icon || '',
     description: link.description || '',
     thumbnail: link.thumbnail || '',
     // Initialize new properties with defaults
@@ -85,11 +84,9 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
   };
 
   const removeThumbnail = () => {
-    console.log('Removing thumbnail, current state:', editedLink.thumbnail);
     setEditedLink({ ...editedLink, thumbnail: '' });
     setThumbnailFile(null);
     setThumbnailPreview(null);
-    console.log('Thumbnail removed, new state:', { ...editedLink, thumbnail: '' });
   };
 
   const hasThumbnail = () => {
@@ -100,30 +97,28 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
     <Box sx={{ pt: 1 }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Basic Link Information */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexWrap: 'wrap',
+          gap: 2 
+        }}>
           <TextField
             label="Label"
             value={editedLink.label || ''}
             onChange={(e) => setEditedLink({ ...editedLink, label: e.target.value })}
-            fullWidth
+            sx={{ flexGrow: 1, minWidth: '250px' }}
             required
           />
           <TextField
             label="URL"
             value={editedLink.url || ''}
             onChange={(e) => setEditedLink({ ...editedLink, url: e.target.value })}
-            fullWidth
+            sx={{ flexGrow: 1, minWidth: '250px' }}
             required
           />
         </Box>
 
-        <TextField
-          label="Icon (FontAwesome class)"
-          value={editedLink.icon || ''}
-          onChange={(e) => setEditedLink({ ...editedLink, icon: e.target.value })}
-          fullWidth
-          helperText="e.g., 'fa-github', 'fa-twitter' (optional)"
-        />
+
 
         <TextField
           label="Description"

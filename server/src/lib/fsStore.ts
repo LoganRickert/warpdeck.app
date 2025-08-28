@@ -9,34 +9,22 @@ const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
 export async function initializeDataDirectories(): Promise<void> {
   try {
-    console.log(`📁 Initializing data directories...`);
-    console.log(`📁 Base data directory: ${DATA_DIR}`);
-    
     await fs.mkdir(DATA_DIR, { recursive: true });
-    console.log(`✅ Created base data directory: ${DATA_DIR}`);
-    
     await fs.mkdir(DASHBOARDS_DIR, { recursive: true });
-    console.log(`✅ Created dashboards directory: ${DASHBOARDS_DIR}`);
     
     // Create uploads directory
     const uploadsDir = path.join(DATA_DIR, 'uploads');
     await fs.mkdir(uploadsDir, { recursive: true });
-    console.log(`✅ Created uploads directory: ${uploadsDir}`);
     
     // Create images directory for favicons
     const imagesDir = path.join(DATA_DIR, 'images');
     await fs.mkdir(imagesDir, { recursive: true });
-    console.log(`✅ Created images directory: ${imagesDir}`);
     
     // Create default settings if they don't exist
     if (!await fileExists(SETTINGS_FILE)) {
       await createDefaultSettings();
-      console.log(`✅ Created default settings file: ${SETTINGS_FILE}`);
     }
-    
-    console.log(`🎯 Data directories initialization complete`);
   } catch (error) {
-    console.error('❌ Failed to initialize data directories:', error);
     throw error;
   }
 }
@@ -52,8 +40,6 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 async function createDefaultSettings(): Promise<void> {
   const defaultSettings: Settings = {
-    dashboardsDir: 'data/dashboards',
-    uploadsDir: 'data/uploads',
     defaultTheme: 'dark',
     defaultDashboardSlug: '',
     dashboards: []
@@ -68,7 +54,6 @@ export async function loadSettings(): Promise<Settings> {
     const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
     return JSON.parse(data) as Settings;
   } catch (error) {
-    console.error('Failed to load settings:', error);
     throw new Error('Failed to load settings');
   }
 }
@@ -77,7 +62,6 @@ export async function saveSettings(settings: Settings): Promise<void> {
   try {
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2));
   } catch (error) {
-    console.error('Failed to save settings:', error);
     throw new Error('Failed to save settings');
   }
 }
@@ -89,7 +73,30 @@ export async function loadDashboard(id: string): Promise<Dashboard | null> {
       return null;
     }
     const data = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(data) as Dashboard;
+    const dashboard = JSON.parse(data) as Dashboard;
+    
+    // Migration: Add showSearchBar property if it doesn't exist
+    if (dashboard.showSearchBar === undefined) {
+      dashboard.showSearchBar = true;
+      // Save the migrated dashboard
+      await saveDashboard(dashboard);
+    }
+    
+    // Migration: Add showCustomBackground property if it doesn't exist
+    if (dashboard.showCustomBackground === undefined) {
+      dashboard.showCustomBackground = false;
+      // Save the migrated dashboard
+      await saveDashboard(dashboard);
+    }
+    
+    // Migration: Add backgroundConfig property if it doesn't exist
+    if (dashboard.backgroundConfig === undefined) {
+      dashboard.backgroundConfig = undefined;
+      // Save the migrated dashboard
+      await saveDashboard(dashboard);
+    }
+    
+    return dashboard;
   } catch (error) {
     console.error(`Failed to load dashboard ${id}:`, error);
     return null;

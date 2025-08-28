@@ -27,47 +27,28 @@ app.use('/api', utilsRouter);
 // Serve uploaded files with dynamic path resolution
 app.use('/api/uploads', async (req, res, next) => {
   try {
-    const settings = await loadSettings();
+    // Use environment variable directly for uploads directory
+    const uploadsDir = path.join(process.env.DATA_DIR || './data', 'uploads');
     
-    // Handle both relative and absolute paths
-    let uploadsDir: string;
-    if (path.isAbsolute(settings.uploadsDir)) {
-      // Absolute path - use as-is
-      uploadsDir = settings.uploadsDir;
-    } else {
-      // Relative path - join with base directory
-      uploadsDir = path.join(process.env.DATA_DIR || '.', settings.uploadsDir);
-    }
-    
-    // Extract just the filename from the request path
+    // Extract just the filename from the request path and sanitize it
     // req.path will be like "/filename.ext" or just "/"
-    const filename = req.path === '/' ? '' : req.path;
+    let filename = req.path === '/' ? '' : req.path.substring(1); // Remove leading slash
     
-    console.log(`🔍 Upload request: ${req.path}`);
-    console.log(`📁 Looking in directory: ${uploadsDir}`);
-    console.log(`📄 Filename extracted: ${filename}`);
+    // Prevent path traversal attacks by only allowing valid filenames
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
     
     // Check if file exists
     const filePath = path.join(uploadsDir, filename);
-    console.log(`📄 Full file path: ${filePath}`);
     
     const fs = await import('fs/promises');
     
-    // Debug: List files in uploads directory
-    try {
-      const files = await fs.readdir(uploadsDir);
-      console.log(`📋 Files in uploads directory:`, files);
-    } catch (error) {
-      console.log(`❌ Could not read uploads directory:`, error);
-    }
-    
     try {
       await fs.access(filePath);
-      console.log(`✅ File found, serving: ${filePath}`);
       
       // Convert to absolute path for res.sendFile()
       const absolutePath = path.resolve(filePath);
-      console.log(`📄 Absolute path: ${absolutePath}`);
       
       // File exists, serve it
       res.sendFile(absolutePath, {
@@ -77,12 +58,9 @@ app.use('/api/uploads', async (req, res, next) => {
       });
     } catch (error) {
       // File doesn't exist, return 404
-      console.log(`❌ Upload not found: ${req.path}`);
-      console.log(`❌ File path checked: ${filePath}`);
       res.status(404).json({ error: 'Upload not found' });
     }
   } catch (error) {
-    console.error('Failed to serve upload:', error);
     res.status(500).json({ error: 'Failed to serve upload' });
   }
 });
@@ -97,16 +75,13 @@ app.use('/api/images', express.static(path.join(__dirname, '../data/images'), {
 
 // Handle 404 for missing favicon images
 app.use('/api/images/*', (req, res) => {
-  console.log(`❌ Favicon not found: ${req.path}`);
   res.status(404).json({ error: 'Favicon not found' });
 });
 
-
-
-// Serve static files from client build
+// Serve static files from client build FIRST
 app.use(express.static(path.join(__dirname, '../../client/dist')));
 
-// SPA fallback - serve index.html for all non-API routes
+// SPA fallback - serve index.html for all non-API routes that don't match static files
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
@@ -115,6 +90,4 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 WarpDeck server running on port ${PORT}`);
-  console.log(`📁 Data directory: ${process.env.DATA_DIR || './data'}`);
-  console.log(`🎯 Dashboards directory: ${process.env.DASHBOARDS_DIR || './data/dashboards'}`);
 });

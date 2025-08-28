@@ -2,6 +2,8 @@
 
 A single-page dashboard portal for quick link access, built with React, TypeScript, and Express.js.
 
+![WarpDeck Dashboard](screenshots/warpdeck-demo1.jpg)
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## 🌟 Features
@@ -14,6 +16,8 @@ A single-page dashboard portal for quick link access, built with React, TypeScri
 - **Data Persistence**: Local file-based storage with export/import capabilities
 - **Favicon Integration**: Automatic favicon fetching for links
 - **Grid Layout Control**: Customize card sizes and grid columns per link
+- **Search Functionality**: Quick search across all your links and dashboards
+- **Background Customization**: Set custom colors or images for your dashboards
 
 ## 🚀 Quick Start
 
@@ -165,6 +169,31 @@ The application stores data in the `server/data/` directory:
 - **Text Color**: Custom text color for link cards
 - **Grid Columns**: Control how many columns a link spans
 - **Card Size**: Small, medium, or large card sizes
+
+## 🎨 App Screenshots
+
+### Dashboard Overview
+The main dashboard provides quick access to all your important links with a clean, modern interface.
+
+### Search Functionality
+![Search Feature](screenshots/warpdeck-demo2.jpg)
+
+Quickly find any link or dashboard using the powerful search feature.
+
+### Dashboard Settings
+![Dashboard Settings](screenshots/warpdeck-demo3.jpg)
+
+Customize your dashboard layout, background, and search preferences.
+
+### Link Management
+![Link Management](screenshots/warpdeck-demo4.jpg)
+
+Easily manage and organize all your links in one place.
+
+### Link Editing
+![Link Editing](screenshots/warpdeck-demo5.jpg)
+
+Fine-tune each link with custom colors, descriptions, and thumbnails.
 
 ## 🐳 Docker
 

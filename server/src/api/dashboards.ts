@@ -10,7 +10,7 @@ import {
   getAllDashboards,
   isSlugUnique
 } from '../lib/fsStore';
-import { downloadFavicon } from '../lib/favicon';
+import { downloadFavicon, getFaviconUrl } from '../lib/favicon';
 import { 
   CreateDashboardRequest, 
   UpdateDashboardRequest, 
@@ -28,7 +28,6 @@ router.get('/', async (req: Request, res: Response) => {
     const dashboards = await getAllDashboards();
     res.json(dashboards);
   } catch (error) {
-    console.error('Failed to get dashboards:', error);
     res.status(500).json({ error: 'Failed to get dashboards' });
   }
 });
@@ -49,12 +48,16 @@ router.post('/', async (req: Request, res: Response) => {
     }
     
     // Create dashboard
-    const dashboard = {
+    const dashboard: Dashboard = {
       id: uuidv4(),
       slug,
       title,
       links: links.map(link => ({ ...link, id: uuidv4() })),
-      layout: layout || { columns: 4, cardSize: 'md', gutter: 12 }
+      layout: layout || { columns: 4, cardSize: 'md', gutter: 12 },
+      searchConfig: { openInNewTab: false, searchEngine: 'google' as const },
+      showSearchBar: true,
+      showCustomBackground: false,
+      backgroundConfig: undefined
     };
     
     await saveDashboard(dashboard);
@@ -70,7 +73,6 @@ router.post('/', async (req: Request, res: Response) => {
     
     res.status(201).json(dashboard);
   } catch (error) {
-    console.error('Failed to create dashboard:', error);
     res.status(500).json({ error: 'Failed to create dashboard' });
   }
 });
@@ -102,7 +104,8 @@ router.post('/import', async (req: Request, res: Response) => {
         ...link,
         id: uuidv4()
       })),
-      layout: importedDashboard.layout || { columns: 4, cardSize: 'md', gutter: 12 }
+      layout: importedDashboard.layout || { columns: 4, cardSize: 'md', gutter: 12 },
+      searchConfig: importedDashboard.searchConfig || { openInNewTab: false, searchEngine: 'google' as const }
     };
     
     // Save the imported dashboard
@@ -119,7 +122,6 @@ router.post('/import', async (req: Request, res: Response) => {
     
     res.status(201).json(newDashboard);
   } catch (error) {
-    console.error('Failed to import dashboard:', error);
     res.status(500).json({ error: 'Failed to import dashboard' });
   }
 });
@@ -151,7 +153,6 @@ router.post('/reorder', async (req: Request, res: Response) => {
     
     res.json({ message: 'Dashboards reordered successfully', dashboards: reorderedDashboards });
   } catch (error) {
-    console.error('Failed to reorder dashboards:', error);
     res.status(500).json({ error: 'Failed to reorder dashboards' });
   }
 });
@@ -177,7 +178,6 @@ router.post('/repair', async (req: Request, res: Response) => {
       res.json({ message: 'Default dashboard slug is already valid', slug: settings.defaultDashboardSlug });
     }
   } catch (error) {
-    console.error('Failed to repair default dashboard slug:', error);
     res.status(500).json({ error: 'Failed to repair default dashboard slug' });
   }
 });
@@ -194,7 +194,6 @@ router.get('/:slug', async (req: Request, res: Response) => {
     
     res.json(dashboard);
   } catch (error) {
-    console.error(`Failed to get dashboard ${req.params.slug}:`, error);
     res.status(500).json({ error: 'Failed to get dashboard' });
   }
 });
@@ -256,7 +255,6 @@ router.put('/:slug', async (req: Request, res: Response) => {
     
     res.json(updatedDashboard);
   } catch (error) {
-    console.error(`Failed to update dashboard ${req.params.slug}:`, error);
     res.status(500).json({ error: 'Failed to update dashboard' });
   }
 });
@@ -287,7 +285,6 @@ router.delete('/:slug', async (req: Request, res: Response) => {
     
     res.json({ message: 'Dashboard deleted successfully' });
   } catch (error) {
-    console.error(`Failed to delete dashboard ${req.params.slug}:`, error);
     res.status(500).json({ error: 'Failed to delete dashboard' });
   }
 });
@@ -308,29 +305,16 @@ router.post('/:slug/links', async (req: Request, res: Response) => {
       id: uuidv4()
     };
     
-    console.log('🔍 Creating new link:', {
-      label: newLink.label,
-      url: newLink.url,
-      thumbnail: newLink.thumbnail,
-      icon: newLink.icon
-    });
-    
-    // If no thumbnail is provided, try to download favicon as fallback
+    // If no thumbnail is provided, try to get favicon URL as fallback
     if (!newLink.thumbnail) {
-      console.log('🔄 No thumbnail provided, attempting favicon download...');
       try {
-        const faviconPath = await downloadFavicon(newLink.url);
-        if (faviconPath) {
-          console.log('✅ Favicon downloaded successfully:', faviconPath);
-          newLink.favicon = faviconPath;
-        } else {
-          console.log('❌ Favicon download returned null');
+        const faviconUrl = await getFaviconUrl(newLink.url);
+        if (faviconUrl) {
+          newLink.favicon = faviconUrl;
         }
       } catch (error) {
-        console.warn(`⚠️ Failed to download favicon for ${newLink.url}:`, error);
+        // Silently fail favicon URL retrieval
       }
-    } else {
-      console.log('ℹ️ Thumbnail provided, skipping favicon download');
     }
     
     dashboard.links.push(newLink);
@@ -338,7 +322,6 @@ router.post('/:slug/links', async (req: Request, res: Response) => {
     
     res.status(201).json(newLink);
   } catch (error) {
-    console.error(`Failed to add link to dashboard ${req.params.slug}:`, error);
     res.status(500).json({ error: 'Failed to add link' });
   }
 });
@@ -362,15 +345,15 @@ router.put('/:slug/links/:linkId', async (req: Request, res: Response) => {
     // Update link
     Object.assign(dashboard.links[linkIndex], updates);
     
-    // If thumbnail was removed and no favicon exists, try to download one
+        // If thumbnail was removed and no favicon exists, try to get one
     if (updates.thumbnail === '' && !dashboard.links[linkIndex].favicon) {
       try {
-        const faviconPath = await downloadFavicon(dashboard.links[linkIndex].url);
-        if (faviconPath) {
-          dashboard.links[linkIndex].favicon = faviconPath;
+        const faviconUrl = await getFaviconUrl(dashboard.links[linkIndex].url);
+        if (faviconUrl) {
+          dashboard.links[linkIndex].favicon = faviconUrl;
         }
       } catch (error) {
-        console.warn(`Failed to download favicon for ${dashboard.links[linkIndex].url}:`, error);
+        // Silently fail favicon URL retrieval
       }
     }
     
@@ -378,7 +361,6 @@ router.put('/:slug/links/:linkId', async (req: Request, res: Response) => {
     
     res.json(dashboard.links[linkIndex]);
   } catch (error) {
-    console.error(`Failed to update link ${req.params.linkId}:`, error);
     res.status(500).json({ error: 'Failed to update link' });
   }
 });
@@ -404,7 +386,6 @@ router.delete('/:slug/links/:linkId', async (req: Request, res: Response) => {
     
     res.json({ message: 'Link deleted successfully' });
   } catch (error) {
-    console.error(`Failed to delete link ${req.params.linkId}:`, error);
     res.status(500).json({ error: 'Failed to delete link' });
   }
 });
@@ -421,18 +402,18 @@ router.post('/:slug/refresh', async (req: Request, res: Response) => {
 
     // Refresh favicons for all links that don't have thumbnails
     const updatedLinks = [];
-    let faviconsDownloaded = 0;
+    let faviconsUpdated = 0;
     
     for (const link of dashboard.links) {
       if (!link.thumbnail) {
         try {
-          const faviconUrl = await downloadFavicon(link.url);
+          const faviconUrl = await getFaviconUrl(link.url);
           if (faviconUrl) {
             link.favicon = faviconUrl;
-            faviconsDownloaded++;
+            faviconsUpdated++;
           }
         } catch (error) {
-          console.warn(`Failed to download favicon for ${link.url}:`, error);
+          // Silently fail favicon URL retrieval
         }
       }
       
@@ -443,9 +424,8 @@ router.post('/:slug/refresh', async (req: Request, res: Response) => {
     dashboard.links = updatedLinks;
     await saveDashboard(dashboard);
     
-    res.json({ message: 'Dashboard refreshed successfully', dashboard });
+    res.json({ message: 'Dashboard refreshed successfully', dashboard, faviconsUpdated });
   } catch (error) {
-    console.error(`Failed to refresh dashboard ${req.params.slug}:`, error);
     res.status(500).json({ error: 'Failed to refresh dashboard' });
   }
 });

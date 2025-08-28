@@ -171,6 +171,7 @@ VITE_APP_TITLE=WarpDeck
 - Dashboard CRUD operations
 - Import/export functionality
 - Drag-and-drop reordering
+- Mobile-responsive design
 
 #### **GlobalSettings**
 - Theme configuration
@@ -207,6 +208,12 @@ All API calls are centralized in `src/api.ts` with proper error handling and Typ
 - Persistent theme preferences
 - Material-UI theme integration
 - Custom color support for individual links
+
+### **Mobile Responsiveness**
+- Responsive grid layouts
+- Touch-friendly drag and drop
+- Mobile-optimized settings interface
+- Adaptive button layouts
 
 ## 🧪 Development
 
@@ -265,34 +272,7 @@ pnpm build
 - Use functional components and hooks
 - Maintain component reusability
 - Add proper error handling
-- Include loading states for async operations
-
-## 📚 Additional Resources
-
-- **Material-UI Documentation**: https://mui.com/
-- **React Documentation**: https://react.dev/
-- **TypeScript Handbook**: https://www.typescriptlang.org/docs/
-- **Vite Documentation**: https://vitejs.dev/
-
-## 🐛 Troubleshooting
-
-### **Common Issues**
-
-#### **Favicon Not Downloading**
-- Check server connectivity
-- Verify URL format (must include protocol)
-- Check browser console for errors
-- Ensure server has internet access
-
-#### **Build Errors**
-- Clear `node_modules` and reinstall
-- Check TypeScript version compatibility
-- Verify all dependencies are installed
-
-#### **Development Server Issues**
-- Check if port 3548 is available
-- Verify backend server is running on 8089
-- Check proxy configuration in `vite.config.ts`
+- Ensure mobile responsiveness
 
 ## 📄 License
 

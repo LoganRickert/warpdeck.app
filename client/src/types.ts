@@ -1,6 +1,4 @@
 export interface Settings {
-  dashboardsDir: string;
-  uploadsDir: string;
   defaultTheme: 'light' | 'dark';
   defaultDashboardSlug: string;
   dashboards: DashboardMeta[];
@@ -18,6 +16,21 @@ export interface Dashboard {
   title: string;
   links: Link[];
   layout?: DashboardLayout;
+  searchConfig?: SearchConfig;
+  showSearchBar?: boolean;
+  showCustomBackground?: boolean;
+  backgroundConfig?: BackgroundConfig;
+}
+
+export interface BackgroundConfig {
+  type: 'color' | 'image';
+  value: string; // hex color or image filename
+  textColor?: string; // hex color for header text
+}
+
+export interface SearchConfig {
+  openInNewTab: boolean;
+  searchEngine: 'google' | 'duckduckgo' | 'bing';
 }
 
 export interface Link {
@@ -48,6 +61,10 @@ export interface CreateDashboardRequest {
   slug: string;
   links?: Omit<Link, 'id'>[];
   layout?: DashboardLayout;
+  searchConfig?: SearchConfig;
+  showSearchBar?: boolean;
+  showCustomBackground?: boolean;
+  backgroundConfig?: BackgroundConfig;
 }
 
 export interface UpdateDashboardRequest {
@@ -55,6 +72,10 @@ export interface UpdateDashboardRequest {
   slug?: string;
   links?: Link[];
   layout?: DashboardLayout;
+  searchConfig?: SearchConfig;
+  showSearchBar?: boolean;
+  showCustomBackground?: boolean;
+  backgroundConfig?: BackgroundConfig;
 }
 
 export interface CreateLinkRequest {
@@ -88,8 +109,6 @@ export interface UpdateLinkRequest {
 }
 
 export interface UpdateSettingsRequest {
-  dashboardsDir?: string;
-  uploadsDir?: string;
   defaultTheme?: 'light' | 'dark';
   defaultDashboardSlug?: string;
   dashboards?: DashboardMeta[];

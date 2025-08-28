@@ -60,7 +60,10 @@ const Header: React.FC<HeaderProps> = ({ settings }) => {
 
   return (
     <AppBar position="static" elevation={1}>
-      <Toolbar sx={{ minHeight: '48px !important' }}>
+      <Toolbar sx={{ 
+        minHeight: '48px !important',
+        px: { xs: 2, sm: 3 } // 16px on mobile, 24px on larger screens
+      }}>
         <Typography
           variant="h6"
           component="div"

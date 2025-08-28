@@ -8,7 +8,8 @@ A robust, scalable backend server for the WarpDeck dashboard application, built 
 - **CRUD Operations**: Create, read, update, and delete dashboards
 - **JSON Storage**: File-based storage with automatic directory management
 - **Import/Export**: Backup and restore dashboard configurations
-- **Slug Management**: URL-friendly dashboard identifiers with uniqueness validation
+- **Data Validation**: Ensures data integrity and consistency
+- **File-based Storage**: JSON-based persistent storage
 
 ### **Link Management**
 - **Rich Link Data**: Store links with metadata, icons, and customization
@@ -39,22 +40,17 @@ A robust, scalable backend server for the WarpDeck dashboard application, built 
 ### **Core Technologies**
 - **Node.js**: JavaScript runtime environment
 - **Express.js**: Fast, unopinionated web framework
-- **TypeScript**: Static type checking and modern JavaScript features
+- **TypeScript**: Full type safety and better development experience
 
-### **File Handling**
-- **Multer**: Multipart form data handling for file uploads
-- **Archiver**: ZIP file creation for exports
-- **Unzipper**: ZIP file extraction for imports
-- **fs/promises**: Modern file system operations
+### **File System**
+- **JSON Storage**: Human-readable data format
+- **Automatic Backups**: Export/import functionality
+- **Directory Management**: Self-organizing file structure
 
-### **Data Management**
-- **UUID**: Unique identifier generation
-- **JSON**: Human-readable data storage format
-- **File System**: Persistent storage with automatic directory creation
-
-### **Development Tools**
-- **ts-node-dev**: TypeScript development with hot reload
-- **CORS**: Cross-origin resource sharing middleware
+### **Utilities**
+- **UUID Generation**: Unique identifier creation
+- **File Archiving**: ZIP compression for exports
+- **Favicon Downloading**: Automatic website icon fetching
 
 ## 📁 Project Structure
 

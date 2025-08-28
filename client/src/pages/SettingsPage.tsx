@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
-import { dashboardsApi, settingsApi } from '../api';
+import { dashboardsApi } from '../api';
 import { Dashboard, CreateDashboardRequest, CreateLinkRequest, Settings } from '../types';
 import {
   DashboardManagement,
-  DashboardEditor,
-  LinkManagement,
+  DashboardEditingView,
   LinkEditor,
   GlobalSettings,
   SettingsTabs,
@@ -15,6 +15,7 @@ import { useSettings } from '../App';
 
 const SettingsPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
+  const [searchParams] = useSearchParams();
   const [tabValue, setTabValue] = useState(0);
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [editingDashboard, setEditingDashboard] = useState<Dashboard | null>(null);
@@ -35,7 +36,6 @@ const SettingsPage: React.FC = () => {
   const [linkForm, setLinkForm] = useState<CreateLinkRequest>({
     label: '',
     url: '',
-    icon: '',
     description: '',
     thumbnail: '',
     // New customization properties with defaults
@@ -46,9 +46,36 @@ const SettingsPage: React.FC = () => {
     gridColumns: 1,
   });
 
+  const loadDashboards = useCallback(async () => {
+    try {
+      setLoading(true);
+      const dashboardsData = await dashboardsApi.getAll();
+      setDashboards(dashboardsData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadDashboards();
   }, []);
+
+  // Handle dashboard query parameter to automatically open dashboard editing
+  useEffect(() => {
+    const dashboardSlug = searchParams.get('dashboard');
+    if (dashboardSlug && dashboards.length > 0) {
+      const dashboardToEdit = dashboards.find(d => d.slug === dashboardSlug);
+      if (dashboardToEdit) {
+        setEditingDashboard(dashboardToEdit);
+        // Clear the URL parameter to avoid re-triggering on navigation
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('dashboard');
+        window.history.replaceState({}, '', `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`);
+      }
+    }
+  }, [searchParams, dashboards]);
 
   const handleImportDashboard = async (importedDashboard: Dashboard) => {
     try {
@@ -57,6 +84,21 @@ const SettingsPage: React.FC = () => {
       
       // Add to local state
       setDashboards([...dashboards, newDashboard]);
+      
+      // Update the global settings context so the header dropdown shows the new dashboard
+      if (settings && settings.dashboards) {
+        const updatedSettings = { ...settings };
+        updatedSettings.dashboards = [
+          ...updatedSettings.dashboards,
+          {
+            id: newDashboard.id,
+            slug: newDashboard.slug,
+            title: newDashboard.title
+          }
+        ];
+        updateSettings(updatedSettings);
+      }
+      
       setSuccess(`Dashboard "${importedDashboard.title}" imported successfully!`);
       
       // Auto-clear success message after 3 seconds
@@ -75,6 +117,17 @@ const SettingsPage: React.FC = () => {
       const dashboardIds = reorderedDashboards.map(d => d.id);
       await dashboardsApi.reorder(dashboardIds);
       
+      // Update the global settings context so the header dropdown reflects the new order
+      if (settings && settings.dashboards) {
+        const updatedSettings = { ...settings };
+        updatedSettings.dashboards = reorderedDashboards.map(d => ({
+          id: d.id,
+          slug: d.slug,
+          title: d.title
+        }));
+        updateSettings(updatedSettings);
+      }
+      
       setSuccess('Dashboard order updated successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -84,33 +137,24 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const loadDashboards = async () => {
-    try {
-      setLoading(true);
-      const dashboardsData = await dashboardsApi.getAll();
-      setDashboards(dashboardsData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDeleteDashboard = async (dashboard: Dashboard) => {
     if (window.confirm(`Are you sure you want to delete "${dashboard.title}"? This action cannot be undone.`)) {
       try {
         await dashboardsApi.delete(dashboard.slug);
         setDashboards(dashboards.filter(d => d.id !== dashboard.id));
         
-        // Refresh settings to get updated defaultDashboardSlug if needed
-        if (settings && settings.defaultDashboardSlug === dashboard.slug) {
-          try {
-            const updatedSettings = await settingsApi.get();
-            updateSettings(updatedSettings);
-          } catch (err) {
-            console.warn('Failed to refresh settings after dashboard deletion:', err);
-          }
+              // Update the global settings context so the header dropdown reflects the deletion
+      if (settings && settings.dashboards) {
+        const updatedSettings = { ...settings };
+        updatedSettings.dashboards = updatedSettings.dashboards.filter(d => d.id !== dashboard.id);
+        
+        // If this was the default dashboard, clear the default
+        if (updatedSettings.defaultDashboardSlug === dashboard.slug) {
+          updatedSettings.defaultDashboardSlug = '';
         }
+        
+        updateSettings(updatedSettings);
+      }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete dashboard');
       }
@@ -229,8 +273,20 @@ const SettingsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Box sx={{ 
+      p: { xs: 2, sm: 3 }, 
+      maxWidth: 1200, 
+      mx: 'auto' 
+    }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '1.75rem', sm: '2.125rem' },
+          mb: { xs: 2, sm: 3 }
+        }}
+      >
         Settings
       </Typography>
 
@@ -249,43 +305,48 @@ const SettingsPage: React.FC = () => {
       <SettingsTabs value={tabValue} onChange={setTabValue}>
         <TabPanel value={tabValue} index={0}>
           {editingDashboard ? (
-            <>
-              <DashboardEditor
-                dashboard={editingDashboard}
-                onSave={async (updatedDashboard) => {
-                  try {
-                    // Use the original slug (editingDashboard.slug) not the updated slug
-                    await dashboardsApi.update(editingDashboard.slug, updatedDashboard);
-                    setDashboards(dashboards.map(d => d.id === updatedDashboard.id ? updatedDashboard : d));
-                    
-                    // Refresh settings context so header dropdown shows updated names
-                    if (settings) {
-                      const updatedSettings = { ...settings };
-                      const dashboardIndex = updatedSettings.dashboards.findIndex(d => d.id === updatedDashboard.id);
-                      if (dashboardIndex !== -1) {
-                        updatedSettings.dashboards[dashboardIndex].title = updatedDashboard.title;
-                        updatedSettings.dashboards[dashboardIndex].slug = updatedDashboard.slug;
-                        updateSettings(updatedSettings);
-                      }
+            <DashboardEditingView
+              dashboard={editingDashboard}
+              onSaveDashboardInfo={async (updates) => {
+                try {
+                  // Use the original slug (editingDashboard.slug) not the updated slug
+                  await dashboardsApi.update(editingDashboard.slug, updates);
+                  const updatedDashboard = { ...editingDashboard, ...updates };
+                  setDashboards(dashboards.map(d => d.id === updatedDashboard.id ? updatedDashboard : d));
+                  setEditingDashboard(updatedDashboard);
+                  
+                  // Refresh settings context so header dropdown shows updated names
+                  if (settings && settings.dashboards) {
+                    const updatedSettings = { ...settings };
+                    const dashboardIndex = updatedSettings.dashboards.findIndex(d => d.id === updatedDashboard.id);
+                    if (dashboardIndex !== -1) {
+                      updatedSettings.dashboards[dashboardIndex].title = updatedDashboard.title;
+                      updatedSettings.dashboards[dashboardIndex].slug = updatedDashboard.slug;
+                      updateSettings(updatedSettings);
                     }
-                    
-                    setEditingDashboard(null);
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Failed to update dashboard');
                   }
-                }}
-                onCancel={() => setEditingDashboard(null)}
-              />
-              <LinkManagement
-                links={editingDashboard.links}
-                onAddLink={() => setLinkDialog(true)}
-                onDeleteLink={handleDeleteLink}
-                onUpdateLink={handleUpdateLink}
-                onDuplicateLink={handleDuplicateLink}
-                onReorderLink={handleReorderLink}
-                isUpdating={isDownloadingFavicon}
-              />
-            </>
+                } catch (err) {
+                  throw new Error('Failed to update dashboard information');
+                }
+              }}
+              onSaveSearchConfig={async (searchConfig) => {
+                try {
+                  await dashboardsApi.update(editingDashboard.slug, { searchConfig });
+                  const updatedDashboard = { ...editingDashboard, searchConfig };
+                  setDashboards(dashboards.map(d => d.id === updatedDashboard.id ? updatedDashboard : d));
+                  setEditingDashboard(updatedDashboard);
+                } catch (err) {
+                  throw new Error('Failed to update search configuration');
+                }
+              }}
+              onCancel={() => setEditingDashboard(null)}
+              onAddLink={() => setLinkDialog(true)}
+              onDeleteLink={handleDeleteLink}
+              onUpdateLink={handleUpdateLink}
+              onDuplicateLink={handleDuplicateLink}
+              onReorderLink={handleReorderLink}
+              isUpdating={isDownloadingFavicon}
+            />
           ) : (
             <DashboardManagement
               dashboards={dashboards}
@@ -308,10 +369,6 @@ const SettingsPage: React.FC = () => {
             <GlobalSettings
               settings={settings}
               onSettingsUpdate={handleSettingsUpdate}
-              onSuccess={(message) => {
-                setSuccess(message);
-                setTimeout(() => setSuccess(null), 3000);
-              }}
             />
           )}
         </TabPanel>
@@ -344,6 +401,21 @@ const SettingsPage: React.FC = () => {
               try {
                 const newDashboard = await dashboardsApi.create(dashboardForm);
                 setDashboards([...dashboards, newDashboard]);
+                
+                // Update the global settings context so the header dropdown shows the new dashboard
+                if (settings && settings.dashboards) {
+                  const updatedSettings = { ...settings };
+                  updatedSettings.dashboards = [
+                    ...updatedSettings.dashboards,
+                    {
+                      id: newDashboard.id,
+                      slug: newDashboard.slug,
+                      title: newDashboard.title
+                    }
+                  ];
+                  updateSettings(updatedSettings);
+                }
+                
                 setDashboardForm({ title: '', slug: '' });
                 setDashboardDialog(false);
               } catch (err) {
@@ -367,7 +439,6 @@ const SettingsPage: React.FC = () => {
               id: '',
               label: '',
               url: '',
-              icon: '',
               description: '',
               thumbnail: '',
               colorBar: '#121212',
@@ -396,7 +467,6 @@ const SettingsPage: React.FC = () => {
                 setLinkForm({ 
                   label: '', 
                   url: '', 
-                  icon: '', 
                   description: '', 
                   thumbnail: '',
                   colorBar: '#121212',

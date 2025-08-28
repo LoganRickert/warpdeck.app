@@ -23,7 +23,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`settings-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: { xs: 2, sm: 3 } }}>{children}</Box>}
     </div>
   );
 }
@@ -41,7 +41,18 @@ const SettingsTabs: React.FC<SettingsTabsProps> = ({
 }) => {
   return (
     <Paper sx={{ width: '100%' }}>
-      <Tabs value={value} onChange={(_, newValue) => onChange(newValue)}>
+      <Tabs 
+        value={value} 
+        onChange={(_, newValue) => onChange(newValue)}
+        variant="fullWidth"
+        sx={{
+          '& .MuiTab-root': {
+            minHeight: '48px',
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+            padding: { xs: '6px 8px', sm: '12px 16px' }
+          }
+        }}
+      >
         <Tab label="Dashboards" />
         <Tab label="Global Settings" />
       </Tabs>

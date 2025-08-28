@@ -6,7 +6,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   Paper,
   Dialog,
@@ -84,7 +83,6 @@ const LinkManagement: React.FC<LinkManagementProps> = ({
       setEditingLinkState({
         label: link.label,
         url: link.url,
-        icon: link.icon,
         description: link.description,
         thumbnail: link.thumbnail,
         // Include new customization properties
@@ -147,70 +145,259 @@ const LinkManagement: React.FC<LinkManagementProps> = ({
       <ListItem
         ref={setNodeRef}
         style={style}
-        divider
         sx={{
           cursor: 'grab',
           '&:active': { cursor: 'grabbing' },
-          backgroundColor: isDragging ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
-          borderRadius: isDragging ? 1 : 0,
-          boxShadow: isDragging ? 3 : 'none',
+          backgroundColor: isDragging ? 'rgba(102, 126, 234, 0.05)' : 'transparent',
+          borderRadius: 2,
+          boxShadow: isDragging ? '0 8px 25px rgba(102, 126, 234, 0.2)' : 'none',
+          mb: 1,
+          border: '1px solid',
+          borderColor: isDragging ? 'rgba(102, 126, 234, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            borderColor: 'rgba(102, 126, 234, 0.1)',
+            transform: 'translateY(-1px)',
+          },
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
         }}
       >
         <Box
-          {...attributes}
-          {...listeners}
           sx={{
             display: 'flex',
             alignItems: 'center',
-            mr: 2,
-            cursor: 'grab',
-            '&:active': { cursor: 'grabbing' },
-            color: 'text.secondary',
+            width: '100%',
           }}
         >
-          <DragIndicatorIcon />
+          <Box
+            {...attributes}
+            {...listeners}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mr: 2,
+              cursor: 'grab',
+              '&:active': { cursor: 'grabbing' },
+              color: 'text.secondary',
+              p: 0.5,
+              borderRadius: 1,
+              '&:hover': {
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                color: 'primary.main',
+              },
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <DragIndicatorIcon />
+          </Box>
+          <ListItemText
+            primary={
+              <Typography variant="body1" component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                {link.label}
+              </Typography>
+            }
+            secondary={
+              <>
+                <Typography 
+                  variant="body2" 
+                  component="span" 
+                  sx={{ 
+                    display: 'block', 
+                    mb: 0.5,
+                    wordBreak: 'break-all',
+                    overflowWrap: 'break-word',
+                    hyphens: 'auto',
+                  }}
+                >
+                  {link.url}
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  component="span" 
+                  sx={{ 
+                    display: 'block',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                  }}
+                >
+                  {link.description || 'No description'}
+                </Typography>
+              </>
+            }
+          />
+          {/* Desktop buttons - hidden on mobile */}
+          <Box sx={{ 
+            display: { xs: 'none', sm: 'flex' }, 
+            gap: 1,
+            alignItems: 'center'
+          }}>
+            <IconButton
+              edge="end"
+              onClick={() => handleEditLink(link.id)}
+              title="Edit Link"
+              size="small"
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  color: 'primary.main',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+              edge="end"
+              onClick={() => handleDuplicateLink(link.id)}
+              title="Duplicate Link"
+              size="small"
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  color: 'primary.main',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <ContentCopyIcon />
+            </IconButton>
+            <IconButton
+              edge="end"
+              onClick={() => onDeleteLink(link.id)}
+              title="Delete Link"
+              size="small"
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  color: 'error.main',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
         </Box>
-        <ListItemText
-          primary={link.label}
-          secondary={`${link.url} • ${link.description || 'No description'}`}
-        />
-        <ListItemSecondaryAction>
-          <IconButton
-            edge="end"
+        
+        {/* Mobile buttons - shown below content on mobile */}
+        <Box sx={{ 
+          display: { xs: 'flex', sm: 'none' }, 
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 1,
+          justifyContent: 'center',
+          mt: 1.5,
+          pt: 1.5,
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          width: '100%',
+        }}>
+          <Button
+            variant="outlined"
+            size="small"
             onClick={() => handleEditLink(link.id)}
-            title="Edit Link"
-            sx={{ mr: 1 }}
+            startIcon={<EditIcon />}
+            sx={{ 
+              color: 'text.secondary',
+              borderColor: 'rgba(102, 126, 234, 0.3)',
+              borderRadius: 2,
+              px: 2,
+              py: 1,
+              minWidth: '100px',
+              fontSize: '0.75rem',
+              '&:hover': {
+                borderColor: 'primary.main',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                color: 'primary.main',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            edge="end"
+            Edit
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
             onClick={() => handleDuplicateLink(link.id)}
-            title="Duplicate Link"
-            sx={{ mr: 1 }}
+            startIcon={<ContentCopyIcon />}
+            sx={{ 
+              color: 'text.secondary',
+              borderColor: 'rgba(102, 126, 234, 0.3)',
+              borderRadius: 2,
+              px: 2,
+              py: 1,
+              minWidth: '100px',
+              fontSize: '0.75rem',
+              '&:hover': {
+                borderColor: 'primary.main',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                color: 'primary.main',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
-            <ContentCopyIcon />
-          </IconButton>
-          <IconButton
-            edge="end"
+            Duplicate
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
             onClick={() => onDeleteLink(link.id)}
-            title="Delete Link"
+            startIcon={<DeleteIcon />}
+            sx={{ 
+              color: 'error.main',
+              borderColor: 'rgba(244, 67, 54, 0.3)',
+              borderRadius: 2,
+              px: 2,
+              py: 1,
+              minWidth: '100px',
+              fontSize: '0.75rem',
+              '&:hover': {
+                borderColor: 'error.main',
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
-            <DeleteIcon />
-          </IconButton>
-        </ListItemSecondaryAction>
+            Delete
+          </Button>
+        </Box>
       </ListItem>
     );
   };
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        flexWrap: 'wrap',
+        gap: 2
+      }}>
         <Typography variant="h6">Links ({links.length})</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={onAddLink}
+          sx={{ 
+            minWidth: '140px',
+            borderRadius: 2,
+            px: 2,
+            py: 1,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+              boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+              transform: 'translateY(-2px)',
+            },
+            transition: 'all 0.3s ease',
+          }}
         >
           Add Link
         </Button>
