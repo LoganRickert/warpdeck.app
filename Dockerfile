@@ -49,6 +49,13 @@ COPY --from=build /app/client/dist ./client/dist
 RUN mkdir -p ./server/data/dashboards
 RUN mkdir -p ./server/data/images
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Set proper ownership of app directories
+RUN chown -R nodejs:nodejs /app
+
 # Set environment variables
 ENV PORT=8089
 ENV DATA_DIR=/app/server/data
@@ -57,6 +64,13 @@ ENV NODE_ENV=production
 
 # Expose port
 EXPOSE 8089
+
+# Switch to non-root user
+USER nodejs
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8089/api/settings', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
 CMD ["node", "server/dist/index.js"]
