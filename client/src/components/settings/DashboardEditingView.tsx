@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
+import { 
+  Box, 
+  Button, 
+  Typography, 
+  Tabs, 
+  Tab
+} from '@mui/material';
+import { 
+  ArrowBack as ArrowBackIcon, 
+  OpenInNew as OpenInNewIcon
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import DashboardInfoEditor from './DashboardInfoEditor';
 import SearchConfigEditor from './SearchConfigEditor';
@@ -21,6 +30,39 @@ interface DashboardEditingViewProps {
   isUpdating: boolean;
 }
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`dashboard-tabpanel-${index}`}
+      aria-labelledby={`dashboard-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ pt: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `dashboard-tab-${index}`,
+    'aria-controls': `dashboard-tabpanel-${index}`,
+  };
+}
+
 const DashboardEditingView: React.FC<DashboardEditingViewProps> = ({
   dashboard,
   onSaveDashboardInfo,
@@ -35,6 +77,7 @@ const DashboardEditingView: React.FC<DashboardEditingViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const [editingDashboard, setEditingDashboard] = useState<Dashboard>(dashboard);
+  const [tabValue, setTabValue] = useState(0);
 
   // Update editingDashboard when dashboard prop changes
   useEffect(() => {
@@ -51,8 +94,12 @@ const DashboardEditingView: React.FC<DashboardEditingViewProps> = ({
     navigate(`/dashboards/${dashboard.slug}`);
   };
 
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
   return (
-    <Box>
+    <Box sx={{ position: 'relative' }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Box sx={{ 
@@ -80,10 +127,15 @@ const DashboardEditingView: React.FC<DashboardEditingViewProps> = ({
                 py: 1,
                 borderColor: 'rgba(102, 126, 234, 0.3)',
                 color: 'text.secondary',
+                '&.MuiButton-outlined:hover': {
+                  borderColor: 'primary.main !important',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05) !important',
+                  color: 'primary.main !important',
+                },
                 '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                  color: 'primary.main',
+                  borderColor: 'primary.main !important',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05) !important',
+                  color: 'primary.main !important',
                 },
                 transition: 'all 0.2s ease',
               }}
@@ -101,9 +153,13 @@ const DashboardEditingView: React.FC<DashboardEditingViewProps> = ({
                 py: 1,
                 borderColor: 'rgba(102, 126, 234, 0.3)',
                 color: 'text.secondary',
+                '&.MuiButton-outlined:hover': {
+                  borderColor: 'text.secondary !important',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05) !important',
+                },
                 '&:hover': {
-                  borderColor: 'text.secondary',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'text.secondary !important',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05) !important',
                 },
                 transition: 'all 0.2s ease',
               }}
@@ -114,40 +170,65 @@ const DashboardEditingView: React.FC<DashboardEditingViewProps> = ({
         </Box>
       </Box>
 
-      {/* Dashboard Information Editor */}
-      <DashboardInfoEditor
-        dashboard={editingDashboard}
-        onSave={handleSaveDashboardInfo}
-      />
-
-      {/* Search Configuration Editor */}
-      {editingDashboard.showSearchBar !== false && (
-        <SearchConfigEditor
-          searchConfig={editingDashboard.searchConfig || { openInNewTab: false, searchEngine: 'google' }}
-          onSave={onSaveSearchConfig}
-        />
-      )}
-
-      {/* Background Configuration Editor */}
-      {editingDashboard.showCustomBackground && (
-        <BackgroundConfigEditor
-          backgroundConfig={editingDashboard.backgroundConfig}
-          onSave={async (backgroundConfig) => {
-            await onSaveDashboardInfo({ backgroundConfig });
+      {/* Navigation Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          aria-label="dashboard editing tabs"
+          sx={{
+            '& .MuiTab-root': {
+              minHeight: '48px',
+              textTransform: 'none',
+              fontWeight: 500,
+            },
           }}
-        />
-      )}
+        >
+          <Tab label="Links" {...a11yProps(0)} />
+          <Tab label="Dashboard Info" {...a11yProps(1)} />
+          <Tab label="Search & Background" {...a11yProps(2)} />
+        </Tabs>
+      </Box>
 
-      {/* Link Management */}
-      <LinkManagement
-        links={editingDashboard.links}
-        onAddLink={onAddLink}
-        onDeleteLink={onDeleteLink}
-        onUpdateLink={onUpdateLink}
-        onDuplicateLink={onDuplicateLink}
-        onReorderLink={onReorderLink}
-        isUpdating={isUpdating}
-      />
+      {/* Tab Panels */}
+      <TabPanel value={tabValue} index={0}>
+        <LinkManagement
+          links={editingDashboard.links}
+          onAddLink={onAddLink}
+          onDeleteLink={onDeleteLink}
+          onUpdateLink={onUpdateLink}
+          onDuplicateLink={onDuplicateLink}
+          onReorderLink={onReorderLink}
+          isUpdating={isUpdating}
+        />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={1}>
+        <DashboardInfoEditor
+          dashboard={editingDashboard}
+          onSave={handleSaveDashboardInfo}
+        />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={2}>
+        {/* Search Configuration Editor */}
+        {editingDashboard.showSearchBar !== false && (
+          <SearchConfigEditor
+            searchConfig={editingDashboard.searchConfig || { openInNewTab: false, searchEngine: 'google' }}
+            onSave={onSaveSearchConfig}
+          />
+        )}
+
+        {/* Background Configuration Editor */}
+        {editingDashboard.showCustomBackground && (
+          <BackgroundConfigEditor
+            backgroundConfig={editingDashboard.backgroundConfig}
+            onSave={async (backgroundConfig) => {
+              await onSaveDashboardInfo({ backgroundConfig });
+            }}
+          />
+        )}
+      </TabPanel>
     </Box>
   );
 };

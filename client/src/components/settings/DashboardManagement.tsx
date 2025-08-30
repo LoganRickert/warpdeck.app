@@ -44,7 +44,7 @@ interface DashboardManagementProps {
   dashboards: Dashboard[];
   onAddDashboard: () => void;
   onEditDashboard: (dashboard: Dashboard) => void;
-  onDeleteDashboard: (dashboardId: string) => void;
+  onDeleteDashboard: (dashboard: Dashboard) => void;
   onImportDashboard?: (dashboard: Dashboard) => void;
   onReorderDashboards?: (dashboards: Dashboard[]) => void;
 }
@@ -58,7 +58,7 @@ const SortableDashboardItem = ({
 }: { 
   dashboard: Dashboard;
   onEditDashboard: (dashboard: Dashboard) => void;
-  onDeleteDashboard: (dashboardId: string) => void;
+  onDeleteDashboard: (dashboard: Dashboard) => void;
   onDownloadDashboard: (dashboard: Dashboard) => void;
 }) => {
   const {
@@ -216,7 +216,7 @@ const SortableDashboardItem = ({
           </IconButton>
           <IconButton
             edge="end"
-            onClick={() => onDeleteDashboard(dashboard.id)}
+            onClick={() => onDeleteDashboard(dashboard)}
             title="Delete Dashboard"
             size="small"
             sx={{ 
@@ -294,7 +294,7 @@ const SortableDashboardItem = ({
         <Button
           variant="outlined"
           size="small"
-          onClick={() => onDeleteDashboard(dashboard.id)}
+          onClick={() => onDeleteDashboard(dashboard)}
           startIcon={<DeleteIcon />}
           sx={{ 
             color: 'error.main',

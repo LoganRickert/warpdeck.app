@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -10,7 +10,6 @@ import {
   FormControl,
   Select,
   MenuItem,
-  Backdrop,
   CircularProgress,
 } from '@mui/material';
 import { Upload as UploadIcon } from '@mui/icons-material';
@@ -41,11 +40,28 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(link.thumbnail || null);
-
-  // Notify parent of state changes
+  
+  // Debounced version of onStateChange to prevent excessive re-renders
+  const debouncedOnStateChange = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedUpdate = useCallback((newState: Partial<Link>) => {
+    if (debouncedOnStateChange.current) {
+      clearTimeout(debouncedOnStateChange.current);
+    }
+    debouncedOnStateChange.current = setTimeout(() => {
+      onStateChange(newState);
+    }, 300); // 300ms delay
+  }, [onStateChange]);
+  
+  // Cleanup timeout on unmount
   React.useEffect(() => {
-    onStateChange(editedLink);
-  }, [editedLink, onStateChange]);
+    return () => {
+      if (debouncedOnStateChange.current) {
+        clearTimeout(debouncedOnStateChange.current);
+      }
+    };
+  }, []);
+
+
 
   const handleThumbnailChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -72,7 +88,9 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
         
         if (response.ok) {
           const result = await response.json();
-          setEditedLink(prev => ({ ...prev, thumbnail: result.thumbnailUrl }));
+          const newState = { ...editedLink, thumbnail: result.thumbnailUrl };
+          setEditedLink(newState);
+          debouncedUpdate(newState);
           setThumbnailFile(null); // Clear the file since it's uploaded
         } else {
           console.error('Failed to upload thumbnail:', response.statusText);
@@ -84,7 +102,9 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
   };
 
   const removeThumbnail = () => {
-    setEditedLink({ ...editedLink, thumbnail: '' });
+    const newState = { ...editedLink, thumbnail: '' };
+    setEditedLink(newState);
+    debouncedUpdate(newState);
     setThumbnailFile(null);
     setThumbnailPreview(null);
   };
@@ -94,7 +114,7 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
   };
 
   return (
-    <Box sx={{ pt: 1 }}>
+    <Box sx={{ pt: 1, position: 'relative' }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Basic Link Information */}
         <Box sx={{ 
@@ -105,25 +125,35 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
           <TextField
             label="Label"
             value={editedLink.label || ''}
-            onChange={(e) => setEditedLink({ ...editedLink, label: e.target.value })}
+            onChange={(e) => {
+              const newState = { ...editedLink, label: e.target.value };
+              setEditedLink(newState);
+              debouncedUpdate(newState);
+            }}
             sx={{ flexGrow: 1, minWidth: '250px' }}
             required
           />
           <TextField
             label="URL"
             value={editedLink.url || ''}
-            onChange={(e) => setEditedLink({ ...editedLink, url: e.target.value })}
+            onChange={(e) => {
+              const newState = { ...editedLink, url: e.target.value };
+              setEditedLink(newState);
+              debouncedUpdate(newState);
+            }}
             sx={{ flexGrow: 1, minWidth: '250px' }}
             required
           />
         </Box>
 
-
-
         <TextField
           label="Description"
           value={editedLink.description || ''}
-          onChange={(e) => setEditedLink({ ...editedLink, description: e.target.value })}
+          onChange={(e) => {
+            const newState = { ...editedLink, description: e.target.value };
+            setEditedLink(newState);
+            debouncedUpdate(newState);
+          }}
           fullWidth
           multiline
           rows={2}
@@ -150,7 +180,11 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
                   <input
                     type="color"
                     value={editedLink.colorBar ?? '#121212'}
-                    onChange={(e) => setEditedLink({ ...editedLink, colorBar: e.target.value })}
+                    onChange={(e) => {
+                      const newState = { ...editedLink, colorBar: e.target.value };
+                      setEditedLink(newState);
+                      debouncedUpdate(newState);
+                    }}
                     style={{
                       width: '40px',
                       height: '40px',
@@ -174,7 +208,11 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
                   <input
                     type="color"
                     value={editedLink.backgroundColor || '#ffffff'}
-                    onChange={(e) => setEditedLink({ ...editedLink, backgroundColor: e.target.value })}
+                    onChange={(e) => {
+                      const newState = { ...editedLink, backgroundColor: e.target.value };
+                      setEditedLink(newState);
+                      debouncedUpdate(newState);
+                    }}
                     style={{
                       width: '40px',
                       height: '40px',
@@ -198,7 +236,11 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
                   <input
                     type="color"
                     value={editedLink.textColor || '#000000'}
-                    onChange={(e) => setEditedLink({ ...editedLink, textColor: e.target.value })}
+                    onChange={(e) => {
+                      const newState = { ...editedLink, textColor: e.target.value };
+                      setEditedLink(newState);
+                      debouncedUpdate(newState);
+                    }}
                     style={{
                       width: '40px',
                       height: '40px',
@@ -227,7 +269,11 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
                 control={
                   <Switch
                     checked={editedLink.openInNewTab || false}
-                    onChange={(e) => setEditedLink({ ...editedLink, openInNewTab: e.target.checked })}
+                    onChange={(e) => {
+                      const newState = { ...editedLink, openInNewTab: e.target.checked };
+                      setEditedLink(newState);
+                      debouncedUpdate(newState);
+                    }}
                   />
                 }
                 label="Open link in new tab"
@@ -240,7 +286,11 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
                 <FormControl size="small" sx={{ minWidth: 150 }}>
                   <Select
                     value={editedLink.gridColumns || 1}
-                    onChange={(e) => setEditedLink({ ...editedLink, gridColumns: e.target.value as number })}
+                    onChange={(e) => {
+                      const newState = { ...editedLink, gridColumns: e.target.value as number };
+                      setEditedLink(newState);
+                      debouncedUpdate(newState);
+                    }}
                     displayEmpty
                   >
                     <MenuItem value={1}>1 column (normal size)</MenuItem>
@@ -304,25 +354,98 @@ const LinkEditor: React.FC<LinkEditorProps> = ({
         </Box>
       </Box>
       
-      {/* Loading Overlay */}
-      <Backdrop
-        sx={{ 
-          color: '#fff', 
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)'
-        }}
-        open={isLoading || false}
-      >
-        <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress color="inherit" size={60} />
-          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
-            Downloading favicon...
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1, color: 'rgba(255, 255, 255, 0.8)' }}>
-            Please wait while we fetch the website icon
-          </Typography>
+      {/* Loading Overlay - Full Screen within Dialog */}
+      {isLoading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            zIndex: (theme) => theme.zIndex.modal + 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 1,
+            backdropFilter: 'blur(8px)',
+            animation: 'fadeIn 0.2s ease-out',
+            '@keyframes fadeIn': {
+              '0%': {
+                opacity: 0,
+                transform: 'scale(0.95)',
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'scale(1)',
+              },
+            },
+          }}
+        >
+          <Box sx={{ textAlign: 'center', p: 4, maxWidth: 400 }}>
+            <Box sx={{ 
+              position: 'relative',
+              mb: 3,
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: -20,
+                left: -20,
+                right: -20,
+                bottom: -20,
+                background: 'radial-gradient(circle, rgba(102, 126, 234, 0.2) 0%, transparent 70%)',
+                borderRadius: '50%',
+                animation: 'pulse 2s ease-in-out infinite',
+              },
+              '@keyframes pulse': {
+                '0%, 100%': {
+                  transform: 'scale(1)',
+                  opacity: 0.5,
+                },
+                '50%': {
+                  transform: 'scale(1.1)',
+                  opacity: 0.8,
+                },
+              },
+            }}>
+              <CircularProgress 
+                color="primary" 
+                size={80} 
+                thickness={4}
+                sx={{ 
+                  color: '#667eea',
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              />
+            </Box>
+            <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold', mb: 2 }}>
+              Downloading favicon...
+            </Typography>
+            <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 2 }}>
+              Please wait while we fetch the website icon
+            </Typography>
+            {editedLink.url && (
+              <Box sx={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                p: 2, 
+                borderRadius: 1, 
+                mb: 2,
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(4px)',
+              }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontFamily: 'monospace', fontSize: '0.875rem', wordBreak: 'break-all' }}>
+                  {editedLink.url}
+                </Typography>
+              </Box>
+            )}
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              This may take a few seconds
+            </Typography>
+          </Box>
         </Box>
-      </Backdrop>
+      )}
     </Box>
   );
 };

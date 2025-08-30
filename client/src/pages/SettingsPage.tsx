@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, CircularProgress } from '@mui/material';
 import { dashboardsApi } from '../api';
 import { Dashboard, CreateDashboardRequest, CreateLinkRequest, Settings } from '../types';
 import {
@@ -27,6 +27,10 @@ const SettingsPage: React.FC = () => {
   const [dashboardDialog, setDashboardDialog] = useState(false);
   const [linkDialog, setLinkDialog] = useState(false);
   const [isDownloadingFavicon, setIsDownloadingFavicon] = useState(false);
+  
+  // Delete confirmation dialog states
+  const [deleteDashboardDialog, setDeleteDashboardDialog] = useState<Dashboard | null>(null);
+  const [deleteLinkDialog, setDeleteLinkDialog] = useState<{ dashboard: Dashboard; linkId: string } | null>(null);
 
   // Form states
   const [dashboardForm, setDashboardForm] = useState<CreateDashboardRequest>({
@@ -137,45 +141,55 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteDashboard = async (dashboard: Dashboard) => {
-    if (window.confirm(`Are you sure you want to delete "${dashboard.title}"? This action cannot be undone.`)) {
-      try {
-        await dashboardsApi.delete(dashboard.slug);
-        setDashboards(dashboards.filter(d => d.id !== dashboard.id));
-        
-              // Update the global settings context so the header dropdown reflects the deletion
+    const handleDeleteDashboard = (dashboard: Dashboard) => {
+    setDeleteDashboardDialog(dashboard);
+  };
+
+  const confirmDeleteDashboard = async () => {
+    if (!deleteDashboardDialog) return;
+    
+    try {
+      await dashboardsApi.delete(deleteDashboardDialog.slug);
+      setDashboards(dashboards.filter(d => d.id !== deleteDashboardDialog.id));
+      
+      // Update the global settings context so the header dropdown reflects the deletion
       if (settings && settings.dashboards) {
         const updatedSettings = { ...settings };
-        updatedSettings.dashboards = updatedSettings.dashboards.filter(d => d.id !== dashboard.id);
+        updatedSettings.dashboards = updatedSettings.dashboards.filter(d => d.id !== deleteDashboardDialog.id);
         
         // If this was the default dashboard, clear the default
-        if (updatedSettings.defaultDashboardSlug === dashboard.slug) {
+        if (updatedSettings.defaultDashboardSlug === deleteDashboardDialog.slug) {
           updatedSettings.defaultDashboardSlug = '';
         }
         
         updateSettings(updatedSettings);
       }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to delete dashboard');
-      }
+      
+      setDeleteDashboardDialog(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete dashboard');
     }
   };
 
-  const handleDeleteLink = async (linkId: string) => {
+  const handleDeleteLink = (linkId: string) => {
     if (!editingDashboard) return;
+    setDeleteLinkDialog({ dashboard: editingDashboard, linkId });
+  };
+
+  const confirmDeleteLink = async () => {
+    if (!deleteLinkDialog) return;
     
-    if (window.confirm('Are you sure you want to delete this link? This action cannot be undone.')) {
-      try {
-        await dashboardsApi.deleteLink(editingDashboard.slug, linkId);
-        const updatedDashboard = {
-          ...editingDashboard,
-          links: editingDashboard.links.filter(l => l.id !== linkId)
-        };
-        setEditingDashboard(updatedDashboard);
-        setDashboards(dashboards.map(d => d.id === editingDashboard.id ? updatedDashboard : d));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to delete link');
-      }
+    try {
+      await dashboardsApi.deleteLink(deleteLinkDialog.dashboard.slug, deleteLinkDialog.linkId);
+      const updatedDashboard = {
+        ...deleteLinkDialog.dashboard,
+        links: deleteLinkDialog.dashboard.links.filter(l => l.id !== deleteLinkDialog.linkId)
+      };
+      setEditingDashboard(updatedDashboard);
+      setDashboards(dashboards.map(d => d.id === deleteLinkDialog.dashboard.id ? updatedDashboard : d));
+      setDeleteLinkDialog(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete link');
     }
   };
 
@@ -261,6 +275,69 @@ const SettingsPage: React.FC = () => {
       await updateSettings(updates);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update settings');
+    }
+  };
+
+  // Safety timeout: prevent loading state from getting stuck
+  useEffect(() => {
+    let timeoutId: number;
+    if (isDownloadingFavicon) {
+      timeoutId = window.setTimeout(() => {
+        setIsDownloadingFavicon(false);
+      }, 10000); // 10 second timeout (reduced from 30)
+    }
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [isDownloadingFavicon]);
+
+  // Ensure loading state is reset when dialog closes
+  const handleCloseLinkDialog = () => {
+    setLinkDialog(false);
+    setIsDownloadingFavicon(false);
+    
+    // Reset form to prevent stale data
+    setLinkForm({
+      label: '',
+      url: '',
+      description: '',
+      thumbnail: '',
+      colorBar: '#121212',
+      backgroundColor: '',
+      textColor: '',
+      openInNewTab: false,
+      gridColumns: 1,
+    });
+  };
+
+  const handleAddLink = async () => {
+    if (!editingDashboard) return;
+    
+    try {
+      setIsDownloadingFavicon(true);
+      
+      await dashboardsApi.addLink(editingDashboard.slug, linkForm);
+      
+      const updatedDashboard = await dashboardsApi.getBySlug(editingDashboard.slug);
+      
+      setEditingDashboard(updatedDashboard);
+      setDashboards(dashboards.map(d => d.id === editingDashboard.id ? updatedDashboard : d));
+      setLinkForm({ 
+        label: '', 
+        url: '', 
+        description: '', 
+        thumbnail: '',
+        colorBar: '#121212',
+        backgroundColor: '',
+        textColor: '',
+        openInNewTab: false,
+        gridColumns: 1,
+      });
+      
+      handleCloseLinkDialog();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add link');
+      setIsDownloadingFavicon(false);
     }
   };
 
@@ -352,12 +429,7 @@ const SettingsPage: React.FC = () => {
               dashboards={dashboards}
               onAddDashboard={() => setDashboardDialog(true)}
               onEditDashboard={setEditingDashboard}
-              onDeleteDashboard={(dashboardId) => {
-                const dashboard = dashboards.find(d => d.id === dashboardId);
-                if (dashboard) {
-                  handleDeleteDashboard(dashboard);
-                }
-              }}
+              onDeleteDashboard={handleDeleteDashboard}
               onImportDashboard={handleImportDashboard}
               onReorderDashboards={handleReorderDashboards}
             />
@@ -431,8 +503,58 @@ const SettingsPage: React.FC = () => {
       </Dialog>
 
       {/* Add Link Dialog */}
-      <Dialog open={linkDialog} onClose={() => setLinkDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Add New Link</DialogTitle>
+      <Dialog 
+        open={linkDialog} 
+        onClose={handleCloseLinkDialog} 
+        maxWidth="lg" 
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            animation: isDownloadingFavicon ? 'dialogPulse 2s ease-in-out infinite' : 'none',
+            '@keyframes dialogPulse': {
+              '0%, 100%': {
+                boxShadow: '0 11px 15px -7px rgba(0,0,0,0.2), 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12)',
+              },
+              '50%': {
+                boxShadow: '0 11px 15px -7px rgba(102, 126, 234, 0.3), 0 24px 38px 3px rgba(102, 126, 234, 0.2), 0 9px 46px 8px rgba(102, 126, 234, 0.1)',
+              },
+            },
+          },
+        }}
+      >
+        <DialogTitle>
+          Add New Link
+          {isDownloadingFavicon && (
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              mt: 1,
+              animation: 'slideDown 0.3s ease-out',
+              '@keyframes slideDown': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateY(-10px)',
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateY(0)',
+                },
+              },
+            }}>
+              <CircularProgress 
+                size={16} 
+                sx={{ 
+                  color: '#667eea',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Downloading favicon...
+              </Typography>
+            </Box>
+          )}
+        </DialogTitle>
         <DialogContent>
           <LinkEditor
             link={{
@@ -454,38 +576,63 @@ const SettingsPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLinkDialog(false)}>Cancel</Button>
+          <Button onClick={handleCloseLinkDialog}>Cancel</Button>
           <Button
-            onClick={async () => {
-              if (!editingDashboard) return;
-              try {
-                setIsDownloadingFavicon(true);
-                await dashboardsApi.addLink(editingDashboard.slug, linkForm);
-                const updatedDashboard = await dashboardsApi.getBySlug(editingDashboard.slug);
-                setEditingDashboard(updatedDashboard);
-                setDashboards(dashboards.map(d => d.id === editingDashboard.id ? updatedDashboard : d));
-                setLinkForm({ 
-                  label: '', 
-                  url: '', 
-                  description: '', 
-                  thumbnail: '',
-                  colorBar: '#121212',
-                  backgroundColor: '',
-                  textColor: '',
-                  openInNewTab: false,
-                  gridColumns: 1,
-                });
-                setLinkDialog(false);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to add link');
-              } finally {
-                setIsDownloadingFavicon(false);
-              }
-            }}
+            onClick={handleAddLink}
             variant="contained"
             disabled={!linkForm.label || !linkForm.url}
           >
             Add Link
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Dashboard Confirmation Dialog */}
+      <Dialog
+        open={!!deleteDashboardDialog}
+        onClose={() => setDeleteDashboardDialog(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Delete Dashboard</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{deleteDashboardDialog?.title}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDashboardDialog(null)}>Cancel</Button>
+          <Button
+            onClick={confirmDeleteDashboard}
+            variant="contained"
+            color="error"
+          >
+            Delete Dashboard
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Link Confirmation Dialog */}
+      <Dialog
+        open={!!deleteLinkDialog}
+        onClose={() => setDeleteLinkDialog(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Delete Link</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this link? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteLinkDialog(null)}>Cancel</Button>
+          <Button
+            onClick={confirmDeleteLink}
+            variant="contained"
+            color="error"
+          >
+            Delete Link
           </Button>
         </DialogActions>
       </Dialog>

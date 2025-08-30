@@ -28,10 +28,13 @@ export async function getFaviconUrl(url: string): Promise<string | null> {
     // Test if DuckDuckGo favicon exists and download it
     try {
       const response = await fetch(duckDuckGoFaviconUrl, { method: 'HEAD' });
+      console.log("Fetch duckduckgo favicon", response.ok);
       if (response.ok) {
         // Download and save the favicon from DuckDuckGo
         const result = await downloadSingleFavicon(duckDuckGoFaviconUrl);
+        console.log("Download duckduckgo favicon");
         if (result) {
+          console.log("Download duckduckgo favicon returned");
           return result;
         }
       }
@@ -48,18 +51,22 @@ export async function getFaviconUrl(url: string): Promise<string | null> {
     for (const faviconUrl of directFaviconUrls) {
       try {
         const response = await fetch(faviconUrl, { method: 'HEAD' });
+        console.log("Fetch direct favicon", response.ok);
         if (response.ok) {
           // Download and save the favicon from direct domain
           const result = await downloadSingleFavicon(faviconUrl);
           if (result) {
+            console.log("Download direct favicon returned");
             return result;
           }
         }
       } catch (error) {
+        console.log("Error fetching direct favicon", error);
         continue;
       }
     }
     
+    console.log("No favicon found");
     // Give up if all attempts fail
     return null;
   } catch (error) {

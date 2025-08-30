@@ -108,7 +108,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, size = 'md', hasImageBackgrou
         sx={{
           display: 'flex',
           flexDirection: 'row',
-          alignItems: 'stretch',
+          alignItems: 'center',
           justifyContent: 'flex-start',
           height: '100%',
           p: 2,
@@ -195,7 +195,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, size = 'md', hasImageBackgrou
             {link.label}
           </Typography>
 
-          {link.description ? (
+          {link.description && (
             <Typography
               variant={size === 'sm' ? 'caption' : size === 'lg' ? 'body2' : 'body2'}
               color="text.secondary"
@@ -208,8 +208,6 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, size = 'md', hasImageBackgrou
             >
               {link.description}
             </Typography>
-          ) : (
-            <Box sx={{ flexGrow: 1 }} />
           )}
           
           {/* Hidden description for screen readers */}

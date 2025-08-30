@@ -13,7 +13,7 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Delete as DeleteIcon, Add as AddIcon, Edit as EditIcon, ContentCopy as ContentCopyIcon, DragIndicator as DragIndicatorIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, ContentCopy as ContentCopyIcon, DragIndicator as DragIndicatorIcon, Add as AddIcon } from '@mui/icons-material';
 import {
   DndContext,
   closestCenter,
