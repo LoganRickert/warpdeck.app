@@ -19,7 +19,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, size = 'md', hasImageBackgrou
     if (link.openInNewTab) {
       window.open(link.url, '_blank', 'noopener,noreferrer');
     } else {
-      window.open(link.url, '_self');
+      window.open(link.url, '_self', 'noopener,noreferrer');
     }
   };
 

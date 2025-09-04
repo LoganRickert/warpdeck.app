@@ -343,7 +343,7 @@ const DashboardPage: React.FC = () => {
         </Alert>
         <Typography variant="body1">
           Dashboard not found. Please check the URL or go to{' '}
-          <a href="/" style={{ color: 'inherit' }}>
+          <a href="/" style={{ color: 'inherit' }} rel="noreferrer">
             settings
           </a>{' '}
           to manage your dashboards.

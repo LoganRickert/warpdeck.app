@@ -44,7 +44,7 @@ export const settingsApi = {
     }),
   export: () => {
     const url = `${API_BASE}/settings/export`;
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener,noreferrer');
   },
   import: (file: File) => {
     const formData = new FormData();
