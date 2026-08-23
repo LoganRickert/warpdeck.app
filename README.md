@@ -23,10 +23,10 @@ A single-page dashboard portal for quick link access, built with React, TypeScri
 
 ### Using Docker (Recommended)
 
-#### Option 1: Use the pre-built image from Docker Hub
+#### Option 1: Use the pre-built image from GitHub
 ```bash
 # Pull and run the latest image
-docker run -d --name warpdeck -p 8089:8089 -v $(pwd)/data:/app/server/data loganrickert/warpdeck:latest
+docker run -d --name warpdeck -p 8089:8089 -v $(pwd)/data:/app/server/data ghcr.io/loganrickert/warpdeck.app:latest
 ```
 
 #### Option 2: Build from source
@@ -219,10 +219,9 @@ docker run -p 3000:8089 warpdeck:latest
 ### Docker Compose
 
 ```yaml
-version: '3.8'
 services:
   warpdeck:
-    build: .
+    image: ghcr.io/loganrickert/warpdeck.app:latest
     ports:
       - "8089:8089"
     volumes:
@@ -256,11 +255,11 @@ pnpm start
 ### Docker Deployment
 
 ```bash
-# Build production image
-docker build -t warpdeck:latest .
+# Pull the published image
+docker pull ghcr.io/loganrickert/warpdeck.app:latest
 
-# Deploy to your preferred container platform
-docker push your-registry/warpdeck:latest
+# Or build and tag locally
+docker build -t warpdeck:latest .
 ```
 
 ## 🤝 Contributing

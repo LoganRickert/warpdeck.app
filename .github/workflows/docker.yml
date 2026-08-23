@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to push version tags as github-actions[bot]
     
     steps:
       - name: Checkout repository
