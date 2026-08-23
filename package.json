@@ -1,6 +1,6 @@
 {
   "name": "warpdeck",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "A single-page dashboard portal for quick link access",
   "scripts": {
     "docker:build": "docker build -t warpdeck:latest .",

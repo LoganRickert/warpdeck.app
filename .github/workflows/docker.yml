@@ -5,67 +5,72 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required to push version tags as github-actions[bot]
-    
+      contents: write
+      packages: write
+      attestations: write
+      id-token: write
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Fetch all history for tags
-          
-      - name: Get next version
+          fetch-depth: 0
+
+      - name: Read version from package.json
         id: version
         run: |
-          # Get the latest tag
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
-          
-          # Extract version number and increment patch version
-          VERSION_NUMBER=$(echo $LATEST_TAG | sed 's/v//')
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NUMBER"
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="v$MAJOR.$MINOR.$NEW_PATCH"
-          
-          echo "New version: $NEW_VERSION"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=$NEW_VERSION" >> $GITHUB_ENV
-          
-      - name: Create and push tag
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag $VERSION_TAG
-          git push origin $VERSION_TAG
-          
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using package.json version $VERSION"
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/warpdeck
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=tag
-            type=raw,value=latest,enable={{is_default_branch}}
-            
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.tag }}
+
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/warpdeck:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/warpdeck:${{ steps.version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; skipping"
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --title "$TAG" \
+            --generate-notes
