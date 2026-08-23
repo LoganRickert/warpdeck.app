@@ -810,7 +810,15 @@ const DashboardPage: React.FC = () => {
             zIndex: 2,
           }}
         >
-          <Box sx={{ width: '100%' }}>
+          <Box 
+            sx={{ 
+              width: '100%',
+              ...(dashboard.maxWidthEnabled && dashboard.maxWidth ? {
+                maxWidth: `${dashboard.maxWidth}px`,
+                margin: '0 auto',
+              } : {}),
+            }}
+          >
             <DashboardGrid dashboard={dashboard} />
           </Box>
         </Box>

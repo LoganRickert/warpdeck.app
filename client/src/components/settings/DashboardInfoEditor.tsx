@@ -10,6 +10,7 @@ import {
   Switch,
 } from '@mui/material';
 import { Dashboard } from '../../types';
+import MaxWidthSettings from './MaxWidthSettings';
 
 interface DashboardInfoEditorProps {
   dashboard: Dashboard;
@@ -25,6 +26,8 @@ const DashboardInfoEditor: React.FC<DashboardInfoEditorProps> = ({
   const [editedDashboard, setEditedDashboard] = useState<Dashboard>({
     ...dashboard,
     showCustomBackground: dashboard.showCustomBackground ?? false,
+    maxWidthEnabled: dashboard.maxWidthEnabled ?? false,
+    maxWidth: dashboard.maxWidth ?? 1200,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,8 @@ const DashboardInfoEditor: React.FC<DashboardInfoEditorProps> = ({
     setEditedDashboard({
       ...dashboard,
       showCustomBackground: dashboard.showCustomBackground ?? false,
+      maxWidthEnabled: dashboard.maxWidthEnabled ?? false,
+      maxWidth: dashboard.maxWidth ?? 1200,
     });
   }, [dashboard]);
 
@@ -47,6 +52,8 @@ const DashboardInfoEditor: React.FC<DashboardInfoEditorProps> = ({
         slug: editedDashboard.slug,
         showSearchBar: editedDashboard.showSearchBar,
         showCustomBackground: editedDashboard.showCustomBackground,
+        maxWidthEnabled: editedDashboard.maxWidthEnabled,
+        maxWidth: editedDashboard.maxWidth,
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -60,7 +67,9 @@ const DashboardInfoEditor: React.FC<DashboardInfoEditorProps> = ({
   const hasChanges = editedDashboard.title !== dashboard.title || 
                     editedDashboard.slug !== dashboard.slug ||
                     editedDashboard.showSearchBar !== dashboard.showSearchBar ||
-                    editedDashboard.showCustomBackground !== dashboard.showCustomBackground;
+                    editedDashboard.showCustomBackground !== dashboard.showCustomBackground ||
+                    editedDashboard.maxWidthEnabled !== dashboard.maxWidthEnabled ||
+                    editedDashboard.maxWidth !== dashboard.maxWidth;
 
   return (
     <Paper sx={{ p: 3, mb: 3 }}>
@@ -234,9 +243,18 @@ const DashboardInfoEditor: React.FC<DashboardInfoEditorProps> = ({
         </Typography>
       </Box>
 
-      <Typography variant="body2" color="text.secondary">
-        Update the basic information for this dashboard. Changes are saved immediately.
-      </Typography>
+      {/* Max Width Settings */}
+      <MaxWidthSettings 
+        dashboard={editedDashboard} 
+        onMaxWidthChange={(maxWidthEnabled, maxWidth) => {
+          setEditedDashboard(prev => ({
+            ...prev,
+            maxWidthEnabled,
+            maxWidth
+          }));
+        }}
+      />
+
     </Paper>
   );
 };

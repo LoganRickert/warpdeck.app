@@ -20,6 +20,8 @@ export interface Dashboard {
   showSearchBar?: boolean;
   showCustomBackground?: boolean;
   backgroundConfig?: BackgroundConfig;
+  maxWidthEnabled?: boolean;
+  maxWidth?: number;
 }
 
 export interface BackgroundConfig {
